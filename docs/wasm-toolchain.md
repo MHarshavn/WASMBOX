@@ -1,21 +1,25 @@
 # WASM Compilation Toolchain
 
-## Approach
+## Overview
 
-WASMBOX uses a WebAssembly-based Python execution pipeline built around
-MicroPython and Wasmtime.
+WASMBOX accepts Python source code and compiles it into a
+source-specific WebAssembly (`.wasm`) artifact.
 
-The planned execution flow is:
+The current compilation pipeline is:
 
 Python source
     ↓
-Compiler service
+CompilerService
     ↓
-MicroPython WASI WebAssembly runtime
+Python syntax validation
+    ↓
+MicroPython WASI build
+    ↓
+Frozen Python module
+    ↓
+WebAssembly artifact
     ↓
 Wasmtime
-    ↓
-Sandboxed execution
 
 ## Toolchain Components
 
@@ -23,37 +27,47 @@ Sandboxed execution
 - MicroPython
 - WebAssembly (WASM)
 - WASI
+- WASI SDK
+- Binaryen / wasm-opt
 - Wasmtime
 - pytest
 
 ## Development Environment
 
-The toolchain is developed and tested using Ubuntu under WSL2 on Windows.
+The current compiler toolchain is developed on Windows using
+Ubuntu under WSL2.
 
-## Important Design Decision
+The MicroPython WASI build requires:
 
-The standard MicroPython Unix port currently cloned for development does
-not contain a WASI/WASM variant.
+- Ubuntu/WSL2
+- WASI SDK 25.0
+- Binaryen (`wasm-opt`)
+- Clang/LLVM
+- Make
+- MicroPython WASI source tree
 
-Therefore, WASMBOX will use a dedicated MicroPython WASI build rather
-than attempting to produce WebAssembly from the standard Unix port.
+## MicroPython WASI
 
-## Reproducibility
+WASMBOX uses the MicroPython WASI variant rather than the standard
+MicroPython Unix build.
 
-The MicroPython WASI runtime used by WASMBOX will be pinned to a known
-source revision/build configuration.
+The WASI-enabled MicroPython source is maintained separately in:
 
-The resulting `.wasm` runtime will be stored as a versioned compiler
-artifact for integration testing.
+`toolchain/micropython-wasi`
 
-## Security Boundary
+The WASI variant is built using:
 
-Python submitted to WASMBOX is treated as untrusted input.
+`ports/unix/variants/wasi`
 
-Execution will later be performed through Wasmtime with restricted host
-capabilities and resource limits.
+The resulting runtime is a WebAssembly module that can execute
+Python code through the MicroPython runtime.
 
-## Interface
+## Source-Specific Compilation
 
-The final compiler service interface will follow the contract established
-by Issue #1.
+The compiler service creates a temporary Python source file and a
+MicroPython frozen-module manifest.
+
+The manifest contains:
+
+```python
+module("program.py")
