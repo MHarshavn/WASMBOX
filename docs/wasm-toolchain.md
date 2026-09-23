@@ -71,3 +71,27 @@ The manifest contains:
 
 ```python
 module("program.py")
+
+## Known-Good WASM Artifact
+
+A known-good WASM artifact can be generated from the example Python program:
+
+```text
+examples/hello.py
+```
+
+Run:
+
+```powershell
+python -m compiler.cli examples\hello.py --output artifacts\hello.wasm
+```
+
+The generated artifact is:
+
+```text
+artifacts/hello.wasm
+```
+
+This artifact is intended for compiler and integration testing. It can be regenerated using the documented compilation pipeline rather than being treated as a source file.
+
+The artifact was verified by successfully compiling the valid `examples/hello.py` input through `CompilerService`.
