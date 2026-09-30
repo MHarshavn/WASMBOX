@@ -174,7 +174,7 @@ def test_runtime_rejects_excessive_memory():
 
     wasm = """
     (module
-        ;; 257 pages × 64 KiB = 16,842,752 bytes.
+        ;; 257 pages x 64 KiB = 16,842,752 bytes.
         ;; Runtime limit is 16 MiB = 16,777,216 bytes.
         (memory 257)
     )
@@ -186,3 +186,14 @@ def test_runtime_rejects_excessive_memory():
 
     with pytest.raises(Exception):
         runtime.execute_wasi(wat2wasm(wasm))
+
+
+def test_runtime_rejects_malformed_wasm():
+    """Malformed WASM must be rejected safely."""
+
+    runtime = WasmRuntime()
+
+    malformed_wasm = b"this-is-not-valid-wasm"
+
+    with pytest.raises(Exception):
+        runtime.execute(malformed_wasm)

@@ -46,7 +46,7 @@ class WasmRuntime:
 
         store = Store(self.engine)
 
-        # Limit total linear memory available to this execution.
+        # Limit linear memory available to this execution.
         store.set_limits(
             memory_size=self.memory_limit,
             memories=1,
