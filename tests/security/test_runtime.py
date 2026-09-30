@@ -134,7 +134,6 @@ def test_wasi_network_access_is_denied():
 
     wasm = """
     (module
-
         (import "wasi_snapshot_preview1" "sock_send"
             (func $sock_send
                 (param i32 i32 i32 i32 i32)
@@ -146,22 +145,11 @@ def test_wasi_network_access_is_denied():
         (export "memory" (memory 0))
 
         (func (export "attempt_network") (result i32)
-
-            ;; fd = 3
             i32.const 3
-
-            ;; pointer to iovec array
             i32.const 0
-
-            ;; number of iovecs = 0
             i32.const 0
-
-            ;; flags = 0
             i32.const 0
-
-            ;; result length pointer
             i32.const 100
-
             call $sock_send
         )
     )
@@ -175,6 +163,27 @@ def test_wasi_network_access_is_denied():
 
     result = attempt_network(store)
 
-    # No socket is available because the sandbox does not provide
-    # a network socket capability.
     assert result != 0
+
+
+def test_runtime_stops_infinite_loop():
+    """An infinite WASM loop must be stopped by the fuel limit."""
+
+    wasm = """
+    (module
+        (func (export "infinite_loop")
+            (loop
+                br 0
+            )
+        )
+    )
+    """
+
+    runtime = WasmRuntime(fuel=10_000)
+
+    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+
+    infinite_loop = instance.exports(store)["infinite_loop"]
+
+    with pytest.raises(Exception):
+        infinite_loop(store)
