@@ -71,7 +71,6 @@ def test_wasi_cannot_read_host_passwd():
 
     wasm = """
     (module
-
         (import "wasi_snapshot_preview1" "path_open"
             (func $path_open
                 (param i32 i32 i32 i32 i32 i64 i64 i32 i32)
@@ -85,34 +84,15 @@ def test_wasi_cannot_read_host_passwd():
         (data (i32.const 0) "/etc/passwd")
 
         (func (export "attempt_read_passwd") (result i32)
-
-            ;; fd = 3
             i32.const 3
-
-            ;; dirflags = 0
             i32.const 0
-
-            ;; path pointer = 0
             i32.const 0
-
-            ;; path length = 11
             i32.const 11
-
-            ;; oflags = 0 (read-only)
             i32.const 0
-
-            ;; rights_base = 0
             i64.const 0
-
-            ;; rights_inheriting = 0
             i64.const 0
-
-            ;; fdflags = 0
             i32.const 0
-
-            ;; result fd pointer = 100
             i32.const 100
-
             call $path_open
         )
     )
@@ -187,3 +167,22 @@ def test_runtime_stops_infinite_loop():
 
     with pytest.raises(Exception):
         infinite_loop(store)
+
+
+def test_runtime_rejects_excessive_memory():
+    """A WASM module exceeding the memory limit must be rejected."""
+
+    wasm = """
+    (module
+        ;; 257 pages × 64 KiB = 16,842,752 bytes.
+        ;; Runtime limit is 16 MiB = 16,777,216 bytes.
+        (memory 257)
+    )
+    """
+
+    runtime = WasmRuntime(
+        memory_limit=16 * 1024 * 1024
+    )
+
+    with pytest.raises(Exception):
+        runtime.execute_wasi(wat2wasm(wasm))
