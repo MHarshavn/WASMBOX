@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from wasmbox.sandbox.errors import CapabilityDeniedError
+
 
 class Capability(str, Enum):
     """Capabilities that may be granted to a plugin."""
@@ -29,16 +31,15 @@ class SecurityPolicy:
         return capability in self.granted
 
     def require(self, capability: Capability) -> None:
-        """Raise PermissionError when a capability is not authorized."""
+        """Raise a structured error when a capability is not authorized."""
         if not self.allows(capability):
-            raise PermissionError(
-                f"Capability denied: {capability.value}"
-            )
+            raise CapabilityDeniedError(capability.value)
 
 
 def default_policy() -> SecurityPolicy:
     """Return the WASMBOX default deny-by-default policy."""
     return SecurityPolicy()
+
 
 def policy_with(*capabilities: Capability) -> SecurityPolicy:
     """Create a policy containing only explicitly granted capabilities."""
