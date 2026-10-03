@@ -5,12 +5,17 @@ from __future__ import annotations
 from wasmtime import (
     Config,
     Engine,
+    FuncType,
     Instance,
     Linker,
     Module,
     Store,
+    ValType,
     WasiConfig,
 )
+
+from wasmbox.sandbox.host import host_log_wasm
+from wasmbox.sandbox.policy import SecurityPolicy, default_policy
 
 
 class WasmRuntime:
@@ -34,7 +39,7 @@ class WasmRuntime:
 
         config = Config()
 
-        # Enable Wasmtime fuel consumption.
+        # Enable Wasmtime fuel-based execution limiting.
         config.consume_fuel = True
 
         self.engine = Engine(config)
@@ -46,33 +51,38 @@ class WasmRuntime:
 
         store = Store(self.engine)
 
-        # Limit linear memory available to this execution.
         store.set_limits(
             memory_size=self.memory_limit,
             memories=1,
         )
 
-        # Limit CPU execution through Wasmtime fuel.
         store.set_fuel(self.fuel)
 
         return store
 
     def execute(self, wasm_bytes: bytes) -> Instance:
-        """Load and instantiate a WASM module without host imports."""
+        """Load and instantiate WASM without host imports."""
 
         module = Module(self.engine, wasm_bytes)
 
         store = self._create_store()
 
-        return Instance(store, module, [])
+        return Instance(
+            store,
+            module,
+            [],
+        )
 
     def execute_wasi(
         self,
         wasm_bytes: bytes,
     ) -> tuple[Store, Instance]:
-        """Execute a WASI module with no preopened host directories."""
+        """Execute WASI with no preopened host directories."""
 
-        module = Module(self.engine, wasm_bytes)
+        module = Module(
+            self.engine,
+            wasm_bytes,
+        )
 
         store = self._create_store()
 
@@ -82,6 +92,67 @@ class WasmRuntime:
         linker = Linker(self.engine)
         linker.define_wasi()
 
-        instance = linker.instantiate(store, module)
+        instance = linker.instantiate(
+            store,
+            module,
+        )
+
+        return store, instance
+
+    def execute_with_host_functions(
+        self,
+        wasm_bytes: bytes,
+        policy: SecurityPolicy | None = None,
+    ) -> tuple[Store, Instance]:
+        """Execute WASM with only explicitly authorized host functions.
+
+        The runtime exposes a deliberately small host interface.
+        No arbitrary Python or operating-system APIs are exposed.
+        """
+
+        if policy is None:
+            policy = default_policy()
+
+        module = Module(
+            self.engine,
+            wasm_bytes,
+        )
+
+        store = self._create_store()
+
+        linker = Linker(self.engine)
+
+        # ---------------------------------------------------------
+        # WASM host.log signature:
+        #
+        # host_log(pointer: i32, length: i32) -> i32
+        # ---------------------------------------------------------
+        host_log_type = FuncType(
+            [
+                ValType.i32(),
+                ValType.i32(),
+            ],
+            [
+                ValType.i32(),
+            ],
+        )
+
+        linker.define_func(
+            "wasmbox",
+            "host_log",
+            host_log_type,
+            lambda caller, pointer, length: host_log_wasm(
+                policy,
+                caller,
+                pointer,
+                length,
+            ),
+            access_caller=True,
+        )
+
+        instance = linker.instantiate(
+            store,
+            module,
+        )
 
         return store, instance
