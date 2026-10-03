@@ -2,48 +2,26 @@
 
 ## Purpose
 
-The sandbox isolates untrusted WebAssembly plugins from the host system.
+The WASMBOX sandbox isolates untrusted WebAssembly plugins from
+unrestricted access to the host system.
+
+Plugin execution is performed through Wasmtime under a deny-by-default
+security policy.
 
 ## Default Security Policy
 
 The sandbox follows a deny-by-default security model.
 
+Capabilities and host resources are unavailable unless they are
+explicitly authorized.
+
 ### Filesystem
 
-No host filesystem access is granted by default.
+Host filesystem access is denied by default.
 
-### Network
+WASI is configured without preopened host directories.
 
-No network access is granted by default.
+Therefore, a plugin cannot access arbitrary host paths such as:
 
-### Host Functions
-
-No host functions are available unless explicitly authorized.
-
-### Resources
-
-Plugin execution must be subject to configured resource limits.
-
-## Required Security Demonstrations
-
-1. Attempt to read `/etc/passwd` -> BLOCKED
-2. Attempt external network access -> BLOCKED
-3. Attempt unauthorized host operation -> BLOCKED
-4. Infinite execution -> TERMINATED
-5. Excessive resource usage -> TERMINATED
-
-## Security Boundary
-
-The WASM runtime is responsible for executing untrusted plugin code
-under the configured sandbox policy.
-
-Application-level capability checks provide an additional security
-boundary for host operations.
-
-## Security Assumptions
-
-- The WASM runtime correctly enforces WebAssembly isolation.
-- Host functions are explicitly registered by WASMBOX.
-- Capabilities are checked before sensitive host operations.
-- Resource limits are configured before plugin execution.
-- Plugins are considered untrusted by default.
+```text
+/etc/passwd
