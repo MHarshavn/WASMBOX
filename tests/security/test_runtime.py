@@ -57,7 +57,9 @@ def test_wasi_has_no_host_filesystem_access():
 
     runtime = WasmRuntime()
 
-    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+    store, instance = runtime.execute_wasi(
+        wat2wasm(wasm)
+    )
 
     check_filesystem = instance.exports(store)["check_filesystem"]
 
@@ -100,7 +102,9 @@ def test_wasi_cannot_read_host_passwd():
 
     runtime = WasmRuntime()
 
-    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+    store, instance = runtime.execute_wasi(
+        wat2wasm(wasm)
+    )
 
     attempt_read_passwd = instance.exports(store)["attempt_read_passwd"]
 
@@ -137,7 +141,9 @@ def test_wasi_network_access_is_denied():
 
     runtime = WasmRuntime()
 
-    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+    store, instance = runtime.execute_wasi(
+        wat2wasm(wasm)
+    )
 
     attempt_network = instance.exports(store)["attempt_network"]
 
@@ -161,12 +167,43 @@ def test_runtime_stops_infinite_loop():
 
     runtime = WasmRuntime(fuel=10_000)
 
-    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+    store, instance = runtime.execute_wasi(
+        wat2wasm(wasm)
+    )
 
     infinite_loop = instance.exports(store)["infinite_loop"]
 
     with pytest.raises(Exception):
         infinite_loop(store)
+
+
+def test_runtime_limits_excessive_instruction_execution():
+    """Runtime must terminate WASM that exceeds its fuel budget."""
+
+    wasm = """
+    (module
+        (func (export "run")
+            (loop
+                br 0
+            )
+        )
+    )
+    """
+
+    runtime = WasmRuntime(fuel=1_000)
+
+    store, instance = runtime.execute_wasi(
+        wat2wasm(wasm)
+    )
+
+    run = instance.exports(store)["run"]
+
+    with pytest.raises(Exception) as exc_info:
+        run(store)
+
+    error_message = str(exc_info.value).lower()
+
+    assert "fuel" in error_message
 
 
 def test_runtime_rejects_excessive_memory():
@@ -185,7 +222,9 @@ def test_runtime_rejects_excessive_memory():
     )
 
     with pytest.raises(Exception):
-        runtime.execute_wasi(wat2wasm(wasm))
+        runtime.execute_wasi(
+            wat2wasm(wasm)
+        )
 
 
 def test_runtime_rejects_malformed_wasm():
