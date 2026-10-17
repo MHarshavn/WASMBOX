@@ -156,3 +156,43 @@ class WasmRuntime:
         )
 
         return store, instance
+
+    def invoke(
+        self,
+        store: Store,
+        instance: Instance,
+        export_name: str,
+        *args: int,
+    ) -> int | None:
+        """Invoke a WASM function and classify runtime failures."""
+
+        from wasmtime import Trap
+
+        from wasmbox.sandbox.errors import SandboxRuntimeError
+
+        try:
+            exports = instance.exports(store)
+            function = exports[export_name]
+            result = function(store, *args)
+            return result
+
+        except KeyError as error:
+            raise SandboxRuntimeError(
+                "invalid_export",
+                f"WASM export not found: {export_name}",
+            ) from error
+
+        except Trap as error:
+            message = str(error)
+            lowered = message.lower()
+
+            if "fuel" in lowered:
+                code = "INSTRUCTION_LIMIT"
+            elif "memory" in lowered or "resource limit" in lowered:
+                code = "MEMORY_LIMIT"
+            elif "capability_denied" in lowered:
+                code = "PERMISSION_DENIED"
+            else:
+                code = "SANDBOX_ERROR"
+
+            raise SandboxRuntimeError(code, message) from error

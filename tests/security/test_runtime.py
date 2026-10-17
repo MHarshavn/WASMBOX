@@ -5,6 +5,8 @@ from wasmtime import wat2wasm
 
 from wasmbox.sandbox.runtime import WasmRuntime
 
+from wasmbox.sandbox.errors import SandboxRuntimeError
+
 
 def test_wasmtime_can_execute_wasm():
     """The runtime can load and instantiate a basic WASM module."""
@@ -236,3 +238,41 @@ def test_runtime_rejects_malformed_wasm():
 
     with pytest.raises(Exception):
         runtime.execute(malformed_wasm)
+
+
+
+def test_invoke_returns_structured_instruction_limit_error():
+    """Fuel exhaustion is reported as INSTRUCTION_LIMIT."""
+
+    wasm = """
+    (module
+        (func (export "run")
+            (loop
+                br 0
+            )
+        )
+    )
+    """
+
+    runtime = WasmRuntime(fuel=1_000)
+    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "run")
+
+    assert exc_info.value.code == "INSTRUCTION_LIMIT"
+
+
+def test_invoke_reports_missing_export_structurally():
+    """A missing export produces a structured error."""
+
+    wasm = '(module (func (export "run")))'
+
+    runtime = WasmRuntime()
+    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "missing_export")
+
+    assert exc_info.value.code == "invalid_export"
+    assert "missing_export" in exc_info.value.message
