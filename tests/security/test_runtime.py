@@ -229,15 +229,32 @@ def test_runtime_rejects_excessive_memory():
         )
 
 
-def test_runtime_rejects_malformed_wasm():
-    """Malformed WASM must be rejected safely."""
-
+@pytest.mark.parametrize(
+    "entrypoint",
+    [
+        "execute",
+        "execute_wasi",
+        "execute_with_host_functions",
+    ],
+)
+def test_runtime_classifies_malformed_wasm(entrypoint):
+    """Malformed WASM produces a structured sandbox error."""
     runtime = WasmRuntime()
-
     malformed_wasm = b"this-is-not-valid-wasm"
 
-    with pytest.raises(Exception):
-        runtime.execute(malformed_wasm)
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        if entrypoint == "execute":
+            runtime.execute(malformed_wasm)
+        elif entrypoint == "execute_wasi":
+            runtime.execute_wasi(malformed_wasm)
+        else:
+            runtime.execute_with_host_functions(malformed_wasm)
+
+    error = exc_info.value
+
+    assert error.code == "SANDBOX_ERROR"
+    assert error.message == "WASM module validation failed"
+    assert error.__cause__ is not None
 
 
 

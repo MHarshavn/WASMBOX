@@ -16,6 +16,7 @@ from wasmtime import (
 
 from wasmbox.sandbox.host import host_log_wasm
 from wasmbox.sandbox.policy import SecurityPolicy, default_policy
+from wasmbox.sandbox.errors import SandboxRuntimeError
 
 
 class WasmRuntime:
@@ -60,10 +61,20 @@ class WasmRuntime:
 
         return store
 
+    def _load_module(self, wasm_bytes: bytes) -> Module:
+        """Load and validate WASM with a stable sandbox error."""
+        try:
+            return Module(self.engine, wasm_bytes)
+        except Exception as error:
+            raise SandboxRuntimeError(
+                "SANDBOX_ERROR",
+                "WASM module validation failed",
+            ) from error
+
     def execute(self, wasm_bytes: bytes) -> Instance:
         """Load and instantiate WASM without host imports."""
 
-        module = Module(self.engine, wasm_bytes)
+        module = self._load_module(wasm_bytes)
 
         store = self._create_store()
 
@@ -79,10 +90,7 @@ class WasmRuntime:
     ) -> tuple[Store, Instance]:
         """Execute WASI with no preopened host directories."""
 
-        module = Module(
-            self.engine,
-            wasm_bytes,
-        )
+        module = self._load_module(wasm_bytes)
 
         store = self._create_store()
 
@@ -113,10 +121,7 @@ class WasmRuntime:
         if policy is None:
             policy = default_policy()
 
-        module = Module(
-            self.engine,
-            wasm_bytes,
-        )
+        module = self._load_module(wasm_bytes)
 
         store = self._create_store()
 
