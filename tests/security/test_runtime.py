@@ -19,9 +19,16 @@ def test_wasmtime_can_execute_wasm():
     assert instance is not None
 
 
-def test_runtime_rejects_unprovided_host_import():
-    """An arbitrary host import must be rejected."""
-
+@pytest.mark.parametrize(
+    "entrypoint",
+    [
+        "execute",
+        "execute_wasi",
+        "execute_with_host_functions",
+    ],
+)
+def test_runtime_classifies_unprovided_host_import(entrypoint):
+    """Unprovided imports produce a structured instantiation error."""
     wasm = """
     (module
         (import "host" "dangerous_operation" (func))
@@ -29,10 +36,21 @@ def test_runtime_rejects_unprovided_host_import():
     """
 
     runtime = WasmRuntime()
+    wasm_bytes = wat2wasm(wasm)
 
-    with pytest.raises(Exception):
-        runtime.execute(wat2wasm(wasm))
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        if entrypoint == "execute":
+            runtime.execute(wasm_bytes)
+        elif entrypoint == "execute_wasi":
+            runtime.execute_wasi(wasm_bytes)
+        else:
+            runtime.execute_with_host_functions(wasm_bytes)
 
+    error = exc_info.value
+
+    assert error.code == "SANDBOX_ERROR"
+    assert error.message == "WASM module instantiation failed"
+    assert error.__cause__ is not None
 
 def test_wasi_has_no_host_filesystem_access():
     """WASI must not have host filesystem access by default."""

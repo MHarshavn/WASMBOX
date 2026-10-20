@@ -71,6 +71,25 @@ class WasmRuntime:
                 "WASM module validation failed",
             ) from error
 
+    def _instantiate_module(
+        self,
+        store: Store,
+        module: Module,
+        linker: Linker | None = None,
+    ) -> Instance:
+        """Instantiate WASM and classify instantiation failures."""
+        try:
+            if linker is None:
+                return Instance(store, module, [])
+
+            return linker.instantiate(store, module)
+
+        except Exception as error:
+            raise SandboxRuntimeError(
+                "SANDBOX_ERROR",
+                "WASM module instantiation failed",
+            ) from error
+
     def execute(self, wasm_bytes: bytes) -> Instance:
         """Load and instantiate WASM without host imports."""
 
@@ -78,11 +97,7 @@ class WasmRuntime:
 
         store = self._create_store()
 
-        return Instance(
-            store,
-            module,
-            [],
-        )
+        return self._instantiate_module(store, module)
 
     def execute_wasi(
         self,
@@ -100,9 +115,10 @@ class WasmRuntime:
         linker = Linker(self.engine)
         linker.define_wasi()
 
-        instance = linker.instantiate(
+        instance = self._instantiate_module(
             store,
             module,
+            linker,
         )
 
         return store, instance
@@ -155,9 +171,10 @@ class WasmRuntime:
             access_caller=True,
         )
 
-        instance = linker.instantiate(
+        instance = self._instantiate_module(
             store,
             module,
+            linker,
         )
 
         return store, instance
