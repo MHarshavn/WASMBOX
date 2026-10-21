@@ -200,7 +200,7 @@ class WasmRuntime:
 
         except KeyError as error:
             raise SandboxRuntimeError(
-                "invalid_export",
+                "SANDBOX_ERROR",
                 f"WASM export not found: {export_name}",
             ) from error
 

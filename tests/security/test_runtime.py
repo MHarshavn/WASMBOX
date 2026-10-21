@@ -299,8 +299,7 @@ def test_invoke_returns_structured_instruction_limit_error():
 
 
 def test_invoke_reports_missing_export_structurally():
-    """A missing export produces a structured error."""
-
+    """A missing export produces a standardized sandbox error."""
     wasm = '(module (func (export "run")))'
 
     runtime = WasmRuntime()
@@ -309,5 +308,8 @@ def test_invoke_reports_missing_export_structurally():
     with pytest.raises(SandboxRuntimeError) as exc_info:
         runtime.invoke(store, instance, "missing_export")
 
-    assert exc_info.value.code == "invalid_export"
-    assert "missing_export" in exc_info.value.message
+    error = exc_info.value
+
+    assert error.code == "SANDBOX_ERROR"
+    assert "missing_export" in error.message
+    assert error.__cause__ is not None
