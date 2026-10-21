@@ -191,14 +191,14 @@ def test_runtime_stops_infinite_loop():
         wat2wasm(wasm)
     )
 
-    infinite_loop = instance.exports(store)["infinite_loop"]
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "infinite_loop")
 
-    with pytest.raises(Exception):
-        infinite_loop(store)
+    assert exc_info.value.code == "INSTRUCTION_LIMIT"
 
 
 def test_runtime_limits_excessive_instruction_execution():
-    """Runtime must terminate WASM that exceeds its fuel budget."""
+    """Runtime must classify fuel exhaustion as INSTRUCTION_LIMIT."""
 
     wasm = """
     (module
@@ -216,14 +216,10 @@ def test_runtime_limits_excessive_instruction_execution():
         wat2wasm(wasm)
     )
 
-    run = instance.exports(store)["run"]
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "run")
 
-    with pytest.raises(Exception) as exc_info:
-        run(store)
-
-    error_message = str(exc_info.value).lower()
-
-    assert "fuel" in error_message
+    assert exc_info.value.code == "INSTRUCTION_LIMIT"
 
 
 def test_runtime_rejects_excessive_memory():
@@ -241,11 +237,16 @@ def test_runtime_rejects_excessive_memory():
         memory_limit=16 * 1024 * 1024
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(SandboxRuntimeError) as exc_info:
         runtime.execute_wasi(
             wat2wasm(wasm)
         )
 
+    error = exc_info.value
+
+    assert error.code == "SANDBOX_ERROR"
+    assert error.message == "WASM module instantiation failed"
+    assert error.__cause__ is not None
 
 @pytest.mark.parametrize(
     "entrypoint",
