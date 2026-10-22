@@ -314,3 +314,41 @@ def test_invoke_reports_missing_export_structurally():
     assert error.code == "SANDBOX_ERROR"
     assert "missing_export" in error.message
     assert error.__cause__ is not None
+
+def test_runtime_reports_structured_host_capability_denial():
+    """Calling a host function without permission is denied structurally."""
+
+    wasm = """
+    (module
+        (import "wasmbox" "host_log"
+            (func $host_log
+                (param i32 i32)
+                (result i32)
+            )
+        )
+
+        (memory (export "memory") 1)
+
+        (data (i32.const 0) "denied")
+
+        (func (export "run") (result i32)
+            i32.const 0
+            i32.const 6
+            call $host_log
+        )
+    )
+    """
+
+    runtime = WasmRuntime()
+
+    store, instance = runtime.execute_with_host_functions(
+        wat2wasm(wasm)
+    )
+
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "run")
+
+    error = exc_info.value
+
+    assert error.code == "PERMISSION_DENIED"
+    assert error.message
