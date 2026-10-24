@@ -85,6 +85,15 @@ class WasmRuntime:
             return linker.instantiate(store, module)
 
         except Exception as error:
+            message = str(error)
+            lowered = message.lower()
+
+            if "memory" in lowered or "resource limit" in lowered:
+                raise SandboxRuntimeError(
+                    "MEMORY_LIMIT",
+                    "WASM memory limit exceeded",
+                ) from error
+
             raise SandboxRuntimeError(
                 "SANDBOX_ERROR",
                 "WASM module instantiation failed",

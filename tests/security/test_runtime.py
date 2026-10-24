@@ -244,8 +244,8 @@ def test_runtime_rejects_excessive_memory():
 
     error = exc_info.value
 
-    assert error.code == "SANDBOX_ERROR"
-    assert error.message == "WASM module instantiation failed"
+    assert error.code == "MEMORY_LIMIT"
+    assert error.message == "WASM memory limit exceeded"
     assert error.__cause__ is not None
 
 @pytest.mark.parametrize(
