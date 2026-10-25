@@ -352,3 +352,28 @@ def test_runtime_reports_structured_host_capability_denial():
 
     assert error.code == "PERMISSION_DENIED"
     assert error.message
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_message"),
+    [
+        ({"fuel": 0}, "fuel must be greater than zero"),
+        ({"fuel": -1}, "fuel must be greater than zero"),
+        (
+            {"memory_limit": 0},
+            "memory_limit must be greater than zero",
+        ),
+        (
+            {"memory_limit": -1},
+            "memory_limit must be greater than zero",
+        ),
+    ],
+)
+def test_runtime_rejects_non_positive_resource_limits(
+    kwargs,
+    expected_message,
+):
+    """Runtime rejects invalid fuel and memory limits at initialization."""
+
+    with pytest.raises(ValueError, match=expected_message):
+        WasmRuntime(**kwargs)
