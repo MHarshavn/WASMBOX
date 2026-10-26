@@ -61,3 +61,129 @@ Provide an end-to-end workflow where a developer writes Python code, submits it 
 ## Current Implementation Status
 
 The repository contains the initial architecture and API documentation, compiler/runtime foundation, toolchain documentation, and contribution/security guidelines. The current MicroPython compiler work produces `.mpy` bytecode for use with a shared WebAssembly runtime; this is not the same as producing a separate standalone `.wasm` module for every plugin. Orchestrator/sandbox integration and end-to-end validation remain follow-up work. See [open issues](https://github.com/MHarshavn/WASMBOX/issues) and [pull requests](https://github.com/MHarshavn/WASMBOX/pulls) for the latest status.
+
+
+## Problem Statement
+
+Running user-supplied code directly inside a backend service can expose the host to unauthorized filesystem or network access, excessive resource consumption, and cross-tenant data access. WASMBOX is being developed to provide a controlled execution boundary with explicit capabilities, resource policies, structured results, and execution metrics.
+
+## Target Architecture
+
+```text
+React + Monaco Developer Portal
+              |
+              v
+         Backend API
+              |
+              v
+          Orchestrator
+              |
+              v
+       Python Compiler
+              |
+              v
+      WebAssembly Runtime
+              |
+              v
+       Sandbox / Wasmtime
+              |
+              v
+   Host Capabilities + Resource Policy
+              |
+              v
+       Execution Metrics
+              |
+              v
+     API Response to the UI
+```
+
+This is the target integration flow. It should not be interpreted as evidence that every component is already integrated.
+
+## Core Components
+
+| Component | Responsibility |
+|---|---|
+| Architecture and API contracts | Define module boundaries, lifecycle states, request/response shapes, and integration rules. |
+| Compiler | Validate supported Python input, produce a runtime-compatible artifact, and report structured errors. |
+| Sandbox and Wasmtime | Execute WebAssembly with explicit isolation and controlled host access. |
+| Host functions and capabilities | Expose approved host operations and reject unauthorized calls by default. |
+| Multi-tenancy and resource limits | Scope execution to a tenant and constrain runtime resources and duration. |
+| Metrics and monitoring | Capture execution outcome, output, duration, errors, and supported resource details. |
+| Developer portal | Provide a React + Monaco editor, run action, and execution result display. |
+| Orchestrator | Coordinate compilation, execution, policy checks, lifecycle state, and result collection. |
+
+## Technology Stack
+
+- **Languages:** Python and JavaScript; React/TypeScript for the planned developer portal.
+- **WebAssembly:** MicroPython WebAssembly runtime artifacts are present in the compiler foundation; Wasmtime is the target for sandboxed execution.
+- **Backend:** Python API and orchestration components, following the repository's API contracts.
+- **Frontend:** React and Monaco Editor.
+- **Tooling:** Git/GitHub, Docker Desktop, and the Emscripten SDK container used to build the MicroPython WebAssembly runtime.
+
+The presence of a technology in the target stack does not necessarily mean its integration is complete.
+
+## Repository Guide
+
+- `backend/compiler/` — compiler interface, result models, MicroPython compiler foundation, runtime artifacts, and compiler tests.
+- `docs/architecture/` — system architecture and module boundaries.
+- `docs/api/API_CONTRACTS.md` — API contract reference.
+- `docs/compiler/MICROPYTHON_TOOLCHAIN.md` — MicroPython/WebAssembly toolchain notes.
+- `frontend/` — developer portal work.
+- `tools/micropython/source/` — local MicroPython source checkout used during toolchain development; it is intentionally ignored by Git and must be obtained separately.
+
+## Getting Started
+
+### Prerequisites
+
+- Git
+- Python compatible with the project's dependencies
+- Node.js for JavaScript runtime smoke tests
+- Docker Desktop with its Linux engine running for the current Docker-based MicroPython compilation workflow
+
+### Clone the repository
+
+```bash
+git clone https://github.com/MHarshavn/WASMBOX.git
+cd WASMBOX
+```
+
+### Prepare the MicroPython toolchain
+
+The MicroPython source checkout is not included in the repository. Follow the [toolchain guide](docs/compiler/MICROPYTHON_TOOLCHAIN.md) to obtain the expected source revision and build the required `mpy-cross` compiler and WebAssembly runtime artifacts. Keep generated source/build trees out of commits unless a task explicitly requires a reviewed artifact.
+
+### Run compiler unit tests
+
+From the repository root, with Docker Desktop running and the toolchain prepared:
+
+```bash
+python -m unittest backend.compiler.test_micropython_compiler -v
+```
+
+These tests cover valid Python compilation, empty-source rejection, and invalid-syntax rejection. They validate the compiler foundation, not the complete end-to-end WASMBOX system.
+
+## Security Principles
+
+- Treat submitted source code, artifacts, and runtime inputs as untrusted.
+- Use deny-by-default host capabilities.
+- Apply filesystem/network isolation and resource limits in the runtime configuration.
+- Return structured errors for compilation, permission, and execution failures.
+- Test unauthorized operations, resource exhaustion, and cross-tenant access.
+- Passing unit tests alone is not proof of sandbox security.
+
+See [SECURITY.md](SECURITY.md) for the security policy and [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Current Status and Next Steps
+
+The repository contains the initial architecture and API documentation, compiler/runtime foundation, toolchain documentation, and contribution/security guidelines. The compiler unit tests have passed in the development environment. The current MicroPython compiler produces `.mpy` bytecode for use with a shared WebAssembly runtime; it does not yet generate a separate standalone `.wasm` artifact for each plugin.
+
+Next steps are to agree on the canonical compiler implementation, integrate bytecode loading with the runtime, connect the compiler to the orchestrator and sandbox, verify resource/capability enforcement, and run the full end-to-end and security test suites.
+
+- [GitHub Issues](https://github.com/MHarshavn/WASMBOX/issues)
+- [Pull Requests](https://github.com/MHarshavn/WASMBOX/pulls)
+- [Architecture](docs/architecture/)
+- [API Contracts](docs/api/API_CONTRACTS.md)
+- [Compiler Toolchain Guide](docs/compiler/MICROPYTHON_TOOLCHAIN.md)
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
