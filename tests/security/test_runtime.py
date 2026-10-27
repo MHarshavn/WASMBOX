@@ -85,7 +85,8 @@ def test_wasi_has_no_host_filesystem_access():
 
     result = check_filesystem(store)
 
-    assert result != 0
+    # WASI errno 8 is EBADF: the requested descriptor is invalid.
+    assert result == 8
 
 
 def test_wasi_cannot_read_host_passwd():
@@ -130,7 +131,8 @@ def test_wasi_cannot_read_host_passwd():
 
     result = attempt_read_passwd(store)
 
-    assert result != 0
+    # WASI errno 8 is EBADF: the requested descriptor is invalid.
+    assert result == 8
 
 
 def test_wasi_network_access_is_denied():
