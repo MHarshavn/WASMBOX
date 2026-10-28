@@ -133,6 +133,23 @@ The presence of a technology in the target stack does not necessarily mean its i
 
 ## Getting Started
 
+### Developer portal (Issue #5)
+
+The React + TypeScript portal in `frontend/` includes a locally bundled Monaco Python
+editor, compile/execute/result API integration, output and metrics, browser-local
+plugin save/load, and simulated webhook input.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+The development server proxies `/api` to `http://127.0.0.1:8000`. Start the backend
+separately. See the [frontend guide](frontend/README.md) for configuration, tests,
+deployment, and the remaining real-backend integration checks. Frontend browser tests
+use contract fixtures and do not validate sandbox security.
+
 ### Prerequisites
 
 - Git
