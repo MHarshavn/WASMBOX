@@ -14,7 +14,7 @@ export function PluginLibrary({ plugins, selectedId, onLoad, onNew, onDelete, di
     {error && <p className="error-message" role="alert">{error}</p>}
     {plugins.length === 0 && <p className="library-empty">Your saved plugins will appear here. Start with the example, or create a new plugin.</p>}
     <ul className="plugin-list">{plugins.map(plugin => <li key={plugin.id} className={plugin.id === selectedId ? 'selected' : ''}>
-      <button className="plugin-entry" disabled={disabled} aria-current={plugin.id === selectedId ? 'true' : undefined} onClick={() => onLoad(plugin)}>
+      <button className="plugin-entry" aria-label={`Load ${plugin.draft.name}`} disabled={disabled} aria-current={plugin.id === selectedId ? 'true' : undefined} onClick={() => onLoad(plugin)}>
         <span className="python-icon">py</span><span className="plugin-summary"><strong>{plugin.draft.name}</strong><small>{new Date(plugin.updatedAt).toLocaleString()}</small></span>
       </button>
       {confirmId === plugin.id ? <div className="delete-confirm"><span>Delete this local copy?</span>
