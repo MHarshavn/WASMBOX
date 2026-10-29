@@ -379,3 +379,26 @@ def test_runtime_rejects_non_positive_resource_limits(
 
     with pytest.raises(ValueError, match=expected_message):
         WasmRuntime(**kwargs)
+
+def test_runtime_classifies_unexpected_wasm_trap():
+    """Unexpected WASM traps become structured sandbox errors."""
+
+    wasm = """
+    (module
+        (func (export "run")
+            unreachable
+        )
+    )
+    """
+
+    runtime = WasmRuntime()
+    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "run")
+
+    error = exc_info.value
+
+    assert error.code == "SANDBOX_ERROR"
+    assert error.message
+    assert error.__cause__ is not None
