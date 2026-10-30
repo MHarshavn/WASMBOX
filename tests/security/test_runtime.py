@@ -402,3 +402,30 @@ def test_runtime_classifies_unexpected_wasm_trap():
     assert error.code == "SANDBOX_ERROR"
     assert error.message
     assert error.__cause__ is not None
+
+
+def test_runtime_classifies_out_of_bounds_memory_access():
+    """An out-of-bounds guest memory access has a structured error."""
+
+    wasm = """
+    (module
+        (memory (export "memory") 1)
+        (func (export "run") (result i32)
+            i32.const 65536
+            i32.load
+        )
+    )
+    """
+
+    runtime = WasmRuntime()
+    store, instance = runtime.execute_wasi(wat2wasm(wasm))
+
+    with pytest.raises(SandboxRuntimeError) as exc_info:
+        runtime.invoke(store, instance, "run")
+
+    error = exc_info.value
+
+    assert error.code == "SANDBOX_ERROR"
+    assert error.message
+    assert error.__cause__ is not None
+

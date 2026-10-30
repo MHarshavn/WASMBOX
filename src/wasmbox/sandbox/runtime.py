@@ -219,10 +219,14 @@ class WasmRuntime:
 
             if "fuel" in lowered:
                 code = "INSTRUCTION_LIMIT"
-            elif "memory" in lowered or "resource limit" in lowered:
-                code = "MEMORY_LIMIT"
             elif "capability_denied" in lowered:
                 code = "PERMISSION_DENIED"
+            elif (
+                "memory limit" in lowered
+                or "resource limit" in lowered
+                or "growth operation limited" in lowered
+            ):
+                code = "MEMORY_LIMIT"
             else:
                 code = "SANDBOX_ERROR"
 
