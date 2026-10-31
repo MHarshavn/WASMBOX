@@ -137,6 +137,3 @@ Passing the current test suite proves only the behaviors exercised by its tests.
 
 
 Security guarantees must be supported by implementation review and explicit regression-test evidence.
-
-
-
