@@ -1,35 +1,34 @@
-@'
 # Contributing to WASMBOX
 
-Thank you for contributing to WASMBOX.
+## Development workflow
 
-## Development Workflow
+1. Check the current branch and worktree before editing.
+2. Keep each change focused and preserve checked-in runtime artifacts.
+3. Do not modify `backend/compiler/micropython.wasm` or
+   `backend/compiler/micropython.mjs` when changing application code.
+4. Add or update tests for changed behavior and run the relevant commands.
+5. Review `git diff --check` and `git status` before committing.
 
-1. Check out the latest `main` branch before starting new work.
-2. Create a feature branch for each issue or task.
-3. Keep changes focused and follow the existing project structure.
-4. Add or update tests for changes to application behavior.
-5. Run the relevant tests before committing.
-6. Review your changes and ensure no secrets, credentials, or unrelated build artifacts are included.
+## Compiler development
 
-## Commit Guidelines
+The current MicroPython compiler produces `.mpy` bytecode. The checked-in
+WebAssembly file is a shared interpreter runtime, so `.mpy` output must never be
+described as a standalone plugin WebAssembly module. Keep compilation and runtime
+execution tests separate.
 
-Use clear, descriptive commit messages. Examples:
+Do not modify the pinned local MicroPython checkout. The known Unix-port WASI
+signal-handling build failure must not be retried as part of ordinary development.
 
-- `feat(compiler): add MicroPython compilation support`
-- `fix(sandbox): handle invalid execution requests`
-- `test(compiler): add compilation failure tests`
-- `docs: update toolchain instructions`
+## Security-sensitive changes
 
-## Pull Requests
+- Treat source, bytecode, runtime input, and artifact metadata as untrusted.
+- Do not execute plugin source using host Python.
+- Add a capability check before exposing any host operation.
+- Preserve tenant checks on every plugin/execution access.
+- Document runtime limitations instead of overstating isolation.
 
-- Explain the problem and the proposed solution.
-- Link the related issue.
-- Include relevant test results.
-- Document configuration or compatibility requirements.
-- Request review before merging.
+## Pull requests
 
-## Compiler Development
-
-The current MicroPython compiler implementation produces `.mpy` bytecode artifacts. The shared WebAssembly runtime and bytecode execution path must be tested separately from compilation. Do not describe `.mpy` output as a standalone WebAssembly module.
-'@ | Set-Content -Path .\CONTRIBUTING.md -Encoding utf8
+Include the problem, implementation notes, relevant test exit codes, security
+impact, and any required local dependencies. Never commit credentials, SDK
+caches, local MicroPython source checkouts, or frontend build output.

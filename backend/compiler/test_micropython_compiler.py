@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from backend.compiler.micropython_compiler import MicroPythonCompiler
 
@@ -46,6 +48,14 @@ class TestMicroPythonCompiler(unittest.TestCase):
         self.assertEqual(result.status, "COMPILATION_FAILED")
         self.assertIsNotNone(result.error)
         self.assertEqual(result.error.code, "COMPILATION_ERROR")
+
+    def test_reports_missing_compiler(self):
+        """A missing local mpy-cross binary is a structured failure."""
+        with TemporaryDirectory() as temporary_directory:
+            compiler = MicroPythonCompiler(repository_root=Path(temporary_directory))
+            result = compiler.compile("print('hello')", "3.x")
+        self.assertEqual(result.status, "COMPILATION_FAILED")
+        self.assertIn("was not found", result.error.message)
 
 
 if __name__ == "__main__":

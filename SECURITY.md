@@ -1,34 +1,34 @@
-@'
 # Security Policy
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Please do not disclose exploitable vulnerabilities in public issues before the maintainers have had an opportunity to assess them.
+Report suspected vulnerabilities privately to the repository maintainers. Include
+the affected component, configuration, reproduction steps, impact, and any
+proposed mitigation. Do not include credentials, private keys, or personal data.
 
-Report suspected vulnerabilities privately to the repository maintainers through a private communication channel available to the project. Include:
+## Current security posture
 
-- A description of the vulnerability.
-- Steps to reproduce it.
-- The affected component and configuration.
-- Potential impact and any suggested mitigation.
+WASMBOX treats plugin source, compiled bytecode, runtime input, and artifact
+metadata as untrusted. The API never executes plugin source with host Python.
+The current Emscripten prototype runs bytecode in a new Node process with Node's
+permission model enabled and access restricted to the runtime directory. It does
+not grant filesystem write, network, child process, worker, addon, WASI, or host
+function permissions.
 
-Do not include real credentials, private keys, personal data, or sensitive production information in reports.
+All records are tenant-scoped in memory and every lookup verifies the request's
+tenant context. The prototype requires `X-Tenant-ID` because authentication is
+not yet implemented; this header must not be accepted as a production identity
+mechanism.
 
-## Security Considerations
+## Limitations
 
-WASMBOX executes user-supplied code. Treat source code, compiled artifacts, runtime inputs, and plugin requests as untrusted.
+This project does not currently execute generated plugin modules under Wasmtime.
+The Emscripten runtime includes a JavaScript bridge, and Node's permission model
+is not a substitute for a complete runtime security review. The permission test
+demonstrates denial of a repository filesystem read outside the runtime
+allow-list; it does not prove comprehensive isolation.
 
-Security-sensitive changes should consider:
-
-- WebAssembly sandbox isolation.
-- Execution time and resource limits.
-- Host-function permissions and capability boundaries.
-- Input validation and error handling.
-- Tests for malformed inputs and attempts to exceed execution limits.
-
-Passing tests does not, by itself, establish that the sandbox is secure.
-
-## Supported Versions
-
-A supported-version policy has not yet been defined. Check the repository's current release and maintenance status before relying on a version for security-sensitive use.
-'@ | Set-Content -Path .\SECURITY.md -Encoding utf8
+Wall-clock timeout is enforced by terminating the child process. The current
+shared runtime cannot provide complete process-memory enforcement or instruction
+fuel accounting. Passing tests does not establish that the sandbox is secure for
+production multi-tenant workloads.

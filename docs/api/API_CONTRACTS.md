@@ -408,7 +408,46 @@ Responsible for:
 
 ---
 
-## 13. Contract Rule
+## 13. Application Metrics API
+
+### Endpoint
+
+GET /metrics
+
+### Response
+
+```json
+{
+  "plugins": {
+    "stored": 1
+  },
+  "executions": {
+    "stored": 2,
+    "by_status": {
+      "SUCCESS": 1,
+      "RUNNING": 1
+    }
+  }
+}
+```
+
+The endpoint requires the same `X-Tenant-ID` context as the other API routes.
+It returns only counts derived from the current process's in-memory records for
+that tenant. It does not return invented measurements, aggregate execution
+timings, or aggregate memory usage. Per-execution measurements remain available
+from `GET /api/v1/executions/{execution_id}`.
+
+---
+
+## 14. Tenant Context (Prototype Implementation)
+
+The published endpoint paths and JSON request bodies remain unchanged. The
+current API implementation requires an `X-Tenant-ID` request header so plugin
+and execution records can be isolated. This is temporary request context, not
+authentication; a production deployment must obtain tenant identity from an
+authenticated principal.
+
+## 15. Contract Rule
 
 If a module needs to change an API contract, the change must be
 discussed with the Team Lead before implementation.

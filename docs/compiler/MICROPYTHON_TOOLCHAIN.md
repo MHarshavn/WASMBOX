@@ -35,3 +35,14 @@ Run:
 ```powershell
 docker info
 docker image inspect emscripten/emsdk:latest
+```
+
+## 5. Artifact boundary
+
+`mpy-cross` produces MicroPython `.mpy` bytecode. It does not produce a
+standalone plugin `.wasm` module. The checked-in `micropython.wasm` is a shared
+Emscripten interpreter runtime and must be tested separately from compilation.
+
+The current Docker daemon must be running for new compilation requests. If it is
+unavailable, the compiler returns a structured `COMPILATION_FAILED` response;
+the service must not substitute a fabricated artifact.

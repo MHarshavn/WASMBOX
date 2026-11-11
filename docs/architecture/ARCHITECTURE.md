@@ -258,3 +258,11 @@ Issue #1 Core Architecture & API Contracts
 - [x] Module ownership and dependencies documented
 - [x] Integration rules documented
 - [x] API contract maintained in `docs/api/API_CONTRACTS.md`
+
+## 12. Current Runtime Status
+
+The target runtime in this architecture is Wasmtime. The current submission has
+not reached that target: it uses a separate Emscripten MicroPython adapter behind
+the sandbox boundary. That adapter executes `.mpy` bytecode with the shared
+runtime and must not be described as Wasmtime or as plugin-specific WebAssembly.
+See `docs/IMPLEMENTATION_STATUS.md` for tested behavior and restrictions.

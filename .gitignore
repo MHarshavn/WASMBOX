@@ -219,3 +219,7 @@ __marimo__/
 
 # Local MicroPython source checkout used by the compiler
 /tools/micropython/source/
+
+# Frontend local dependencies and build output
+/frontend/node_modules/
+/frontend/dist/

@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 import subprocess
@@ -47,6 +48,14 @@ class MicroPythonCompiler(Compiler):
         # Avoid passing arbitrary command-line flags through the version field.
         if not re.fullmatch(r"[A-Za-z0-9._+-]+", python_version):
             return CompilationResult.failed("Invalid Python version value.")
+
+        # Validation only: host Python never evaluates plugin source.
+        try:
+            ast.parse(source_code)
+        except SyntaxError as exc:
+            return CompilationResult.failed(
+                f"Invalid Python syntax: {exc.msg} (line {exc.lineno})."
+            )
 
         if not (self.repository_root / self.mpy_cross_relative).is_file():
             return CompilationResult.failed(
