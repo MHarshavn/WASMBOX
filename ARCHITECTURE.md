@@ -1,74 +1,62 @@
 # WASMBOX Architecture
 
-## 1. Overview
+## Target architecture
 
-WASMBOX is a secure, lightweight WebAssembly-based execution
-environment for running untrusted Python plugins in a multi-tenant
-SaaS environment.
+```text
+React + Monaco Portal
+        |
+        v
+     FastAPI API
+        |
+        v
+   Orchestrator
+   /     |      \
+  v      v       v
+Compiler Policy  Sandbox adapter
+  |              |
+  v              v
+.mpy artifact  Shared MicroPython WebAssembly runtime
+        \       /
+          Metrics + ExecutionResult
+```
 
-## 2. Core Components
+WASMBOX separates HTTP validation, compilation, policy, and execution. The API
+does not evaluate source or load a runtime. The orchestrator stores tenant-owned
+plugin/execution records, validates limits and capabilities, then delegates a
+bytecode artifact to a sandbox adapter.
 
-WASMBOX consists of:
+## Current implementation
 
-1. Developer Portal
-2. API Layer
-3. Execution Orchestrator
-4. Python-to-WASM Compiler
-5. WASM Sandbox
-6. Security/Capability Manager
-7. Resource Manager
-8. Multi-Tenancy Manager
-9. Host Function Layer
-10. Metrics and Monitoring
+The current compiler produces MicroPython `.mpy` bytecode. The current adapter
+executes it with the checked-in Emscripten MicroPython runtime in a separately
+spawned Node process using a restrictive Node permission configuration. This is
+an Emscripten prototype, **not** Wasmtime and not a plugin-specific `.wasm`
+artifact. `EmscriptenMicroPythonSandbox` is intentionally isolated behind the
+orchestrator boundary so a future Wasmtime/WASI adapter can replace it without
+altering API paths or JSON models.
 
-## 3. Execution Flow
+## Lifecycle
 
-Developer
-→ Developer Portal
-→ API
-→ Orchestrator
-→ Compiler
-→ WASM Sandbox
-→ WASM Runtime
-→ Execution
-→ Metrics
-→ API
-→ Developer Portal
+```text
+CREATED -> COMPILING -> READY -> RUNNING -> SUCCESS
+```
 
-## 4. Module Ownership
+Failure states are `COMPILATION_FAILED`, `EXECUTION_FAILED`, `TIMEOUT`,
+`MEMORY_LIMIT`, `INSTRUCTION_LIMIT`, `PERMISSION_DENIED`, and `SANDBOX_ERROR`.
+The implementation uses these exact state names.
 
-| Module | Owner |
-|---|---|
-| Architecture & Orchestrator | Team Lead |
-| WASM Compiler | Member 2 |
-| Sandbox & Security | Member 3 |
-| Multi-Tenancy & Resources | Member 4 |
-| Developer Portal | Member 5 |
+## Security boundaries
 
-## 5. Security Principles
+- `X-Tenant-ID` scopes all in-memory plugin and execution records for the
+  prototype; production must derive tenant identity from authentication.
+- Capabilities deny by default. No host function is enabled today, so any
+  requested capability is rejected.
+- The API never calls Python `exec()` on plugin source.
+- The adapter accepts bytecode only, uses the Emscripten in-memory filesystem,
+  and does not grant Node filesystem-write, network, child-process, worker,
+  addon, WASI, or host-function permissions.
+- Wall-clock timeout is enforced by the parent process. Hard total-memory and
+  instruction limits remain unsupported by the current shared runtime.
 
-- Untrusted code must execute inside the WASM sandbox.
-- Host access is deny-by-default.
-- Filesystem access must be restricted.
-- Network access must be restricted.
-- Resource limits must be enforced.
-- Tenant resources must be isolated.
-- Host functions must require explicit capabilities.
-
-## 6. Execution States
-
-CREATED
-→ COMPILING
-→ READY
-→ RUNNING
-→ SUCCESS
-
-Possible failure states:
-
-- COMPILATION_FAILED
-- EXECUTION_FAILED
-- TIMEOUT
-- MEMORY_LIMIT
-- INSTRUCTION_LIMIT
-- PERMISSION_DENIED
-- SANDBOX_ERRORgit status
+See [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for the
+tested status and limitations.

@@ -1,0 +1,20 @@
+FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-24
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    git \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/opt/wasi-sdk/bin:${PATH}"
+
+WORKDIR /work
+
+RUN python3 --version && \
+    make --version && \
+    clang --version && \
+    wasm-ld --version
