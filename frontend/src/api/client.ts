@@ -78,10 +78,11 @@ export class PortalApi {
         method,
         credentials: 'same-origin',
         signal: controller.signal,
-        headers:
-          body === undefined
-            ? { Accept: 'application/json' }
-            : { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          'X-Tenant-ID': import.meta.env.VITE_TENANT_ID || 'demo-tenant',
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       let data: unknown;
